@@ -1,0 +1,20 @@
+# Revenue Gate frontend
+
+Run from this directory with Node 22+: `npm start`; visit http://127.0.0.1:4173. No install or secret is needed. Run `npm test` for the demo adapter checks. Static hosting can serve index.html, styles.css, app.js and adapter.js together. Demo state resets on refresh.
+
+## Integration handoff
+
+The interface has an isolated in-memory adapter. Replace it with asynchronous API calls once the technical lead supplies the contract; update UI rendering and loading/error handling at that time. The following are **proposed data shapes**, not confirmed endpoints:
+
+- Research quote: request ID, asset, chain ID 97, amount/denomination, recipient or transaction parameters, expiry.
+- Payment status: request ID, transaction hash, confirmations, amount, assessment (pending/eligible/flagged/uncertain), reason and evidence. A testnet transaction is not evidence of independent demand.
+- Report: title, summary, observations, actual source URLs and timestamps, status.
+- Launch: eligible revenue, target, denomination, payment records, preset/contract addresses and actual chain state; distinguish informational milestone and enforced eligibility.
+
+Use backend-provided payment instructions, require explicit wallet confirmation and verify chain 97. Never expose AWS, Claude or partner credentials. Do not create real-money transactions. Keep demo mode visibly separate; do not silently fall back to sample records after live failures.
+
+OpenFour references: [Boost](https://github.com/four-meme-community/openfour-boost-launchpad) for frontend/backend boundaries; [developer toolkit](https://github.com/four-meme-community/openfour-docs/tree/main/developer) for preset and migration concepts. Original UI, no copied upstream code. Dependency-free implementation chosen to minimize setup friction before the deadline.
+
+## Outstanding
+
+API base URL and CORS, authentication, payment flow and report schema, testnet wallet integration, actual OpenFour preset/contract state and verification, browser/visual QA, production hosting.
