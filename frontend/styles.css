@@ -12,3 +12,6 @@
   .table-wrap th:nth-child(4){width:36%}
   .table-wrap .pill{display:inline-block;border-radius:8px;white-space:normal;line-height:1.4}
 }
+.mode-select{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.mode-select select{background:var(--panel);color:var(--white);border:1px solid var(--line);padding:7px;border-radius:6px;font:inherit}
+.evidence{overflow-wrap:anywhere}

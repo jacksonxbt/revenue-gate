@@ -1,10 +1,10 @@
 # Revenue Gate frontend
 
-Run from this directory with Node 22+: `npm start`; visit http://127.0.0.1:4173. No install or secret is needed. Run `npm test` for the demo adapter checks. Static hosting can serve index.html, styles.css, app.js and adapter.js together. Demo state resets on refresh.
+Run from this directory with Node 22+: `npm start`; visit http://127.0.0.1:4173. No install or secret is needed. Run `npm test` for the demo adapter checks. Static hosting can serve index.html, styles.css, app.js, adapter.js, live.js and live-view.js together. Demo state resets on refresh.
 
 ## Integration handoff
 
-The interface has an isolated in-memory adapter. Replace it with asynchronous API calls once the technical lead supplies the contract; update UI rendering and loading/error handling at that time. The following are **proposed data shapes**, not confirmed endpoints:
+The interface has an isolated in-memory adapter. A separate live mode and async adapter are now prepared; live configuration remains blank until the technical lead confirms routes. No demo fallback occurs. The following are **proposed data shapes**, not confirmed endpoints:
 
 - Research quote: request ID, asset, chain ID 97, amount/denomination, recipient or transaction parameters, expiry.
 - Payment status: request ID, transaction hash, confirmations, amount, assessment (pending/eligible/flagged/uncertain), reason and evidence. A testnet transaction is not evidence of independent demand.
