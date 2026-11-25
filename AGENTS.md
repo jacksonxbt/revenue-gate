@@ -1,0 +1,3 @@
+# Revenue Gate collaboration instructions
+
+Read docs/PRODUCT_SPEC.md, docs/TASKS.md and docs/DECISIONS.md before work. Check current branch and open issues. Use separate branches for independent work, coordinate overlapping files, and use pull requests to integrate. Never overwrite teammates' changes. Document proposed product changes and blockers in issues; record accepted decisions in docs/DECISIONS.md. Report actual results, tests, and remaining limitations; do not portray mocks as live integrations. Keep credentials and wallet keys out of git. Use dedicated testnet funds only. Preserve third-party licenses. Prioritize the submission deadline.
