@@ -49,13 +49,14 @@ Product payments made through the app on 26 Nov 2026:
 |---|---|---|---|
 | `0x70627e88fae51d7b145c6b6cebd27145c41d260875ec559abc84a466d605dada` | 55 | Not counted | `0x244d8b8ca5ad11c7f05bd87df7bffd4f310b6737bd429596bc43dcbb9ebaddec` |
 | `0x0e3f36a37b8e7c0857cb5e93b91647e4b218609c67d56ec8a522ac4a6d19060a` | 55 | Not counted | `0x38b8e275702cb07832ad1d738b6d70d9e7cec5dd860c09df47b47ff0655316ec` |
+| `0xe686cce522e44e7ea292bb5a67dcf39e9edd390c6b7fa3230144ac5387df8b46` | 78 | Counted | `0xd37bfaa33e1c95a2ca055fc19b4fbeb76c18adfab3ee37ebe444e0d4e85be336` |
 
 What was observed on-chain:
 
 - RGATE raised 0.002 tBNB against a 0.001 soft cap, so its sale condition is met.
 - After that buy the token stayed in the Trading phase and no `MigrateExecuted` event was emitted.
 - Read as OpenFour Core, the module's `evaluate()` returned `canMigrate = false` with the reason "Revenue gate closed: verified product payments are below the threshold".
-- The gate holds 5 recorded payments (the two above, two later payments that scored 25, and one earlier test record), none counted, total score 0 of 5,000.
+- The gate holds 6 recorded payments: the three above, two others that scored 25, and one earlier test record. One is counted, so the total score is 78 of 5,000.
 
 Tests:
 
@@ -65,10 +66,10 @@ Tests:
 ## What is not proven
 
 - **The gate has not opened on-chain.** Only the blocked outcome has been observed on testnet. The allowed outcome is covered by unit tests against a stand-in for OpenFour Core.
-- **Both product payments came from the same wallet that receives payments.** Self-payment is not blocked yet.
+- **The two payments that scored 55 came from the same wallet that receives payments.** Self-payment is not blocked yet.
 - **The oracle is trusted.** Only the server's wallet can write scores to the contract.
 - **Wallet scoring is shallow.** It uses balance, transaction count and whether the address is a contract. A wallet with 3 sent transactions and 0.02 BNB already counts, so an attacker could prepare wallets to pass.
-- **The payments in the table above were scored under the earlier, stricter rules** (AI-only scoring, testnet history only). The rules changed on 26 Nov 2026; no payment has been made under the new rules yet.
+- **The two payments that scored 55 were scored under the earlier, stricter rules** (AI-only scoring, testnet history only). The rules changed on 26 Nov 2026. The payment that scored 78 was made under the new rules, from wallet `0xb2b077da332ad4b36fe3956c1b185a8f1da2106d`, which is not the receiving wallet.
 - **Reports are not fact-checked.** They come from the model's own knowledge, without live market data.
 - **Not on the official OpenFour registry.** Listing requires OpenFour's review and audit.
 - The hosted app is served over plain HTTP from a single server.
