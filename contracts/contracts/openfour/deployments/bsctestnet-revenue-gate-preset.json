@@ -1,0 +1,82 @@
+{
+  "slug": "revenue-gate",
+  "network": "bsctestnet",
+  "chainId": 97,
+  "registeredAt": "2026-11-26T08:31:54.142Z",
+  "deployer": "0xc2013a8a76BAC5914a88bf2F809334468332589d",
+  "registry": "0x60fC4573E855352aac3b4DB1Ee32a78558902313",
+  "core": "0x47bbd1Fef75cD12EE89d66375652DFDaC3D34f15",
+  "presetId": "1795681909735",
+  "tokenImplId": "0x2b5b4abf986db939c949935971f5f7455d608538c86cb2537b616ef1755b7d47",
+  "tokenImpl": "0xAE27264A3eCd3d152A6fa01E0860Fc12100687Fe",
+  "implementations": {
+    "StandardTokenModule": "0x140E06b066671843F9178AE9F828369A436118b3",
+    "StandardVault": "0x024E84Bcf17e44C1Bdc17F27dB0D03F8539aAAfb",
+    "FairLaunchCurveModule": "0x13BF153090F5f8F7d2aa9209298e923184a5F316",
+    "FairLaunchTradeModule": "0xE3861087cc4dD2dED03Bbe10fCDE1Bb45949F317",
+    "RevenueGateMigrateModule": "0xC681E759cE87681C7E4Df7b7e4d6c47FFABDDaf3",
+    "FairLaunchCustomDataModule": "0xF18c30Da1F881ef9B1652Bfa9C524854076d9349",
+    "RevenueGatePresetValidator": "0xA823a15742867A101Bd2B029ED907493535D69B2"
+  },
+  "moduleKeys": {
+    "StandardTokenModule": {
+      "keySource": "TOKEN_STANDARD",
+      "moduleKey": "0x48f90f4115ab8ef5e9e882e46964405e86bb62323d676b602350fc8baef2637e"
+    },
+    "StandardVault": {
+      "keySource": "VAULT_BASIC",
+      "moduleKey": "0x3e7c54e066dccd796d82c61050797d9b41fc573ce6b95b1968fb6e21c9df315b"
+    },
+    "FairLaunchCurveModule": {
+      "keySource": "module.curve.fair_launch",
+      "moduleKey": "0xcf12d925b6d19494b2c7264f94c8c8d6d996b1e206adfa01ab72b6cf312dffe7"
+    },
+    "FairLaunchTradeModule": {
+      "keySource": "module.trade.fair_launch",
+      "moduleKey": "0xcbd13a291d016f5fb04b5f037603e9b924c128007ebf6aafe47975dd83b1bc9c"
+    },
+    "RevenueGateMigrateModule": {
+      "keySource": "module.migrate.revenue_gate",
+      "moduleKey": "0xc1f70541cc76c257ec9fe39f5e8aed7b111591be86fb493dde12cf4f1d7e715f"
+    },
+    "FairLaunchCustomDataModule": {
+      "keySource": "module.data.fair_launch",
+      "moduleKey": "0x4575a33397ad0575d6ddf53c5936c517c5989cc567030f2c3ec3be0f4e75e5af"
+    }
+  },
+  "developerModules": [
+    {
+      "keySource": "module.curve.fair_launch",
+      "moduleKey": "0xcf12d925b6d19494b2c7264f94c8c8d6d996b1e206adfa01ab72b6cf312dffe7",
+      "implementation": "0x13BF153090F5f8F7d2aa9209298e923184a5F316",
+      "kind": 2,
+      "name": "FairLaunchCurveModule",
+      "txHash": "0x08b0f295afae22d3a4094c417ed5d54a725fbbd0afb1a7399695efbe66dcc503"
+    },
+    {
+      "keySource": "module.trade.fair_launch",
+      "moduleKey": "0xcbd13a291d016f5fb04b5f037603e9b924c128007ebf6aafe47975dd83b1bc9c",
+      "implementation": "0xE3861087cc4dD2dED03Bbe10fCDE1Bb45949F317",
+      "kind": 3,
+      "name": "FairLaunchTradeModule",
+      "txHash": "0xbb3739a53b2b8b076bb4a6ada073b8a912e1d885ffbc248dcb08f680fc661252"
+    },
+    {
+      "keySource": "module.migrate.revenue_gate",
+      "moduleKey": "0xc1f70541cc76c257ec9fe39f5e8aed7b111591be86fb493dde12cf4f1d7e715f",
+      "implementation": "0xC681E759cE87681C7E4Df7b7e4d6c47FFABDDaf3",
+      "kind": 4,
+      "name": "RevenueGateMigrateModule",
+      "txHash": "0x02953c6b5a2086f14ed2691b2c0eb7f0783b7a4e43168319ff384039d41788c4"
+    },
+    {
+      "keySource": "module.data.fair_launch",
+      "moduleKey": "0x4575a33397ad0575d6ddf53c5936c517c5989cc567030f2c3ec3be0f4e75e5af",
+      "implementation": "0xF18c30Da1F881ef9B1652Bfa9C524854076d9349",
+      "kind": 5,
+      "name": "FairLaunchCustomDataModule",
+      "txHash": "0x9e9bb0105d782dec86ab3a36701a7206592547718c136a30fccf972292011c15"
+    }
+  ],
+  "presetTx": "0x1437fd093b6195709e4df0f5903274995ada4ed5d2e4c5814090c72e353660cd"
+}

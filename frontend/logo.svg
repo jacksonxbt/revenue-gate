@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Revenue Gate">
+  <rect width="32" height="32" rx="7" fill="#0F3D2E"/>
+  <rect x="6.5" y="10" width="4" height="15" rx="1.2" fill="#F2B01E"/>
+  <rect x="21.5" y="16" width="4" height="9" rx="1.2" fill="#F2B01E"/>
+  <path d="M8.5 13 24.5 6.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

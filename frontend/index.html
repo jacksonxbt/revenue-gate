@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0F3D2E">
+  <title>Revenue Gate</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F3D2E'/%3E%3Crect x='6.5' y='10' width='4' height='15' rx='1.2' fill='%23F2B01E'/%3E%3Crect x='21.5' y='16' width='4' height='9' rx='1.2' fill='%23F2B01E'/%3E%3Cpath d='M8.5 13 24.5 6.5' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=7">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-row">
+      <a class="brand" href="#discover" aria-label="Revenue Gate, overview">
+        <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="#0F3D2E"/>
+          <rect x="6.5" y="10" width="4" height="15" rx="1.2" fill="#F2B01E"/>
+          <rect x="21.5" y="16" width="4" height="9" rx="1.2" fill="#F2B01E"/>
+          <path d="M8.5 13 24.5 6.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+        </svg>
+        <span>Revenue Gate</span>
+      </a>
+      <nav aria-label="Main">
+        <a href="#discover">Overview</a>
+        <a href="#research">Research</a>
+        <a href="#launch">Gate</a>
+      </nav>
+      <div class="mode" role="group" aria-label="Data source">
+        <button type="button" data-mode="live">Testnet</button>
+        <button type="button" data-mode="demo">Demo</button>
+      </div>
+    </div>
+  </header>
+  <div id="notice" class="notice" hidden></div>
+  <main id="view" tabindex="-1"></main>
+  <footer class="foot">
+    <div class="wrap foot-row">
+      <span>Revenue Gate runs on BNB Smart Chain testnet (chain 97). Test funds only.</span>
+      <span>Reports are educational and are not financial advice.</span>
+    </div>
+  </footer>
+  <script type="module" src="./app.js?v=7"></script>
+</body>
+</html>

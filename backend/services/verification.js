@@ -15,6 +15,30 @@ async function rpcCall(method, params) {
   return data.result;
 }
 
+// Confirms the hash is a mined, successful transfer of at least minWei to recipient.
+export async function checkTransfer(txHash, recipient, minWei) {
+  let tx, receipt, head;
+  try {
+    [tx, receipt, head] = await Promise.all([
+      rpcCall("eth_getTransactionByHash", [txHash]),
+      rpcCall("eth_getTransactionReceipt", [txHash]),
+      rpcCall("eth_blockNumber", []),
+    ]);
+  } catch {
+    return { status: "pending", reason: "Couldn't reach the BNB testnet node. Try again in a moment." };
+  }
+  if (!tx) return { status: "pending", reason: "No transaction with this hash on BNB testnet yet. Check the hash, or wait for the transfer to confirm." };
+  if (!receipt) return { status: "pending", reason: "The transfer is still confirming. Wait a moment, then verify again." };
+  if (receipt.status !== "0x1") return { status: "failed", reason: "This transaction failed on-chain. Send a new transfer and paste its hash." };
+  if ((tx.to || "").toLowerCase() !== recipient.toLowerCase()) return { status: "failed", reason: "This transaction went to a different address than the one in your quote." };
+  if (BigInt(tx.value) < BigInt(minWei)) return { status: "failed", reason: "This transaction sent less than the quoted amount." };
+  return {
+    status: "confirmed",
+    from: tx.from.toLowerCase(),
+    confirmations: Math.max(1, parseInt(head, 16) - parseInt(receipt.blockNumber, 16) + 1),
+  };
+}
+
 async function getWalletProfile(address) {
   address = address.toLowerCase();
   const [balanceHex, txCountHex, code] = await Promise.all([
