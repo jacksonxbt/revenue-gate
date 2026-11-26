@@ -95,6 +95,9 @@ const live = {
     const r = await api.report(quote.requestId);
     if (r.status === 'pending') throw new Error('The report is still being written. Try again in a few seconds.');
     if (r.status !== 'ready') throw new Error("The report couldn't be written. Try again.");
+    if (r.liquidity?.status === 'available' && quote.asset !== `${r.token.chain}:${r.token.address}`) {
+      return {...r, liquidity: {status: 'unavailable', source: r.liquidity.source}};
+    }
     return r;
   },
 };
@@ -184,7 +187,7 @@ function overview() {
 function stepOne(r) {
   if (r.quote) return `<li class="done"><h2>Choose an asset</h2><div class="body"><p>${esc(r.quote.asset)} report, ${esc(r.quote.amount)}</p><div><button class="btn quiet small" data-action="reset">Start over</button></div></div></li>`;
   return `<li><h2>Choose an asset</h2><form class="body" data-form="quote" novalidate>
-    <label class="field">Asset name or symbol<input data-field="asset" maxlength="40" autocomplete="off" placeholder="BNB" value="${esc(r.asset)}"></label>
+    <label class="field">${state.mode === 'demo' ? 'Asset name or symbol' : 'BNB Smart Chain token contract'}<input data-field="asset" maxlength="46" autocomplete="off" placeholder="${state.mode === 'demo' ? 'BNB' : 'bsc:0x…'}" value="${esc(r.asset)}"></label>
     ${r.error ? `<p class="alert" role="alert">${esc(r.error)}</p>` : ''}
     <div><button class="btn" ${r.busy ? 'disabled' : ''}>${r.busy === 'quote' ? 'Getting a quote…' : 'Get a quote'}</button></div>
   </form></li>`;
@@ -231,13 +234,19 @@ function stepThree(r) {
 
 function reportDoc(r) {
   if (!r.payment) return '<div class="doc"><div class="doc-empty"><h2>No report yet</h2><p>Finish the three steps and your report opens here, along with the verdict on your payment.</p></div></div>';
-  const verdict = `<div class="verdict">${tag(r.payment.verdict, true)}${r.payment.score != null ? `<p><strong>Wallet score ${r.payment.score} of 100.</strong> A score of 60 or more counts.</p>` : ''}<p>${esc(r.payment.reason)}</p>
+  const verdict = `<div class="verdict">${tag(r.payment.verdict, true)}${r.payment.score != null ? `<p><strong>Wallet activity score ${r.payment.score} of 100.</strong> The threshold is 60. This score cannot establish ownership or customer demand.</p>` : ''}<p>${esc(r.payment.reason)}</p>
     ${r.payment.gateTx ? `<p class="muted">Written to the gate contract in ${txLink(r.payment.gateTx)}</p>` : ''}</div>`;
   if (!r.report) return `<div class="doc">${verdict}${r.busy === 'report' ? '<p class="writing">Writing your report…</p>' : ''}</div>`;
   const sources = r.report.sources.map(s => ({label: s.label, url: safeSource(s.url)})).filter(s => s.url);
+  const metric = r.report.liquidity;
+  const value = metric?.status === 'available' && Date.now() < Date.parse(metric.expiresAt)
+    ? new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(metric.usd)
+    : 'Unavailable';
   return `<article class="doc">${verdict}
     <h2>${esc(r.report.title)}</h2>
     <p class="summary">${esc(r.report.summary)}</p>
+    ${r.report.token ? `<p>Token on ${esc(r.report.token.chain)} <code>${esc(r.report.token.address)}</code></p>` : ''}
+    ${metric ? `<h3>Liquidity in the largest reported pool</h3><p><strong>${esc(value)}</strong> · ${esc(metric.source)}${value !== 'Unavailable' ? ` · Retrieved <time datetime="${esc(metric.retrievedAt)}">${esc(metric.retrievedAt)}</time>` : ''}</p>` : ''}
     ${r.report.observations.length ? `<h3>What to look at</h3><ul class="points">${r.report.observations.map(o => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}
     ${sources.length ? `<h3>Sources</h3><ul>${sources.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join('')}</ul>` : ''}
   </article>`;
@@ -246,7 +255,7 @@ function reportDoc(r) {
 function research() {
   const r = state.r;
   return `<div class="wrap">
-    <section class="page-head"><h1>Research an asset before you touch it.</h1><p>Pay 0.01 tBNB for an AI-written report. Your payment is checked, and if your wallet looks genuine it counts toward the gate.</p></section>
+    <section class="page-head"><h1>Research an asset before you touch it.</h1><p>Pay 0.01 tBNB for a token research report. We check the payment and explain whether it qualifies for the gate.</p></section>
     <div class="bench"><ol class="steps">${stepOne(r)}${stepTwo(r)}${stepThree(r)}</ol>${reportDoc(r)}</div>
   </div>`;
 }
@@ -261,7 +270,7 @@ function gatePage() {
   ${gateBand()}
   ${g?.openfour ? openFourPanel(g.openfour) : ''}
   <section class="ledger"><div class="wrap">
-    <div class="ledger-head"><div><h2>Payments</h2><p class="ledger-note">A counted payment shows a genuine-looking wallet. It doesn't prove independent demand.</p></div>
+    <div class="ledger-head"><div><h2>Payments</h2><p class="ledger-note">A counted payment met the wallet activity threshold. Activity cannot establish who controls a wallet or prove independent demand.</p></div>
     <button class="btn quiet" data-action="refresh" ${state.gateBusy ? 'disabled' : ''}>${state.gateBusy ? 'Refreshing…' : 'Refresh'}</button></div>
     ${rows}
     ${extra > 0 ? `<p class="ledger-note">The contract also holds ${num(extra)} earlier ${extra === 1 ? 'record' : 'records'} not listed here.</p>` : ''}
@@ -304,7 +313,7 @@ async function run(kind, fn) {
 
 function getQuote() {
   const asset = state.r.asset.trim();
-  if (!asset) { state.r.error = 'Enter an asset name or symbol, like BNB.'; return render(); }
+  if (!asset) { state.r.error = 'Enter a token contract as bsc:0x… in Testnet mode, or an asset name in Demo mode.'; return render(); }
   run('quote', async r => { r.quote = await src().quote(asset); });
 }
 
