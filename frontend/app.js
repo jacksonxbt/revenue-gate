@@ -251,6 +251,30 @@ function research() {
   </div>`;
 }
 
+/* Mirrors SCORE_RULES in backend/services/verification.js */
+const SCORE_GUIDE = [
+  {name: 'Activity', max: 50, note: 'Transactions the wallet has sent on BNB testnet and BNB mainnet, added together.',
+    tiers: [['50 or more', 50], ['10 to 49', 40], ['3 to 9', 30], ['1 or 2', 10]]},
+  {name: 'Balance', max: 25, note: 'tBNB plus BNB the wallet holds after paying.',
+    tiers: [['0.1 or more', 25], ['0.02 or more', 18], ['0.005 or more', 10], ['Less than 0.005', 3]]},
+  {name: 'Wallet type', max: 15, note: 'A contract paying is capped at 40 in total, so it never counts.',
+    tiers: [['Personal wallet', 15], ['Contract', 0]]},
+];
+
+function scoreGuide() {
+  const group = g => `<div class="sg-group"><h3>${esc(g.name)} <span>up to ${g.max} points</span></h3><p>${esc(g.note)}</p>
+    <ul>${g.tiers.map(([label, pts]) => `<li><span class="sg-label">${esc(label)}</span><span class="sg-bar"><i style="--w:${pts * 2}%"></i></span><span class="sg-pts">${pts}</span></li>`).join('')}</ul></div>`;
+  return `<section class="sg" aria-labelledby="sg-h"><div class="wrap">
+    <h2 id="sg-h">How a wallet is scored</h2>
+    <p class="ledger-note">A payment counts toward the gate when the paying wallet scores 60 or more out of 100. The points come from fixed rules; the AI model explains the result and can move it by up to 5 points either way.</p>
+    <div class="sg-grid">${SCORE_GUIDE.map(group).join('')}</div>
+    <div class="sg-scale" role="img" aria-label="Scores from 0 to 59 are not counted. Scores from 60 to 100 are counted.">
+      <span class="sg-no">0 to 59: not counted</span><span class="sg-yes">60 to 100: counted</span>
+    </div>
+    <p class="ledger-note">Example: a wallet with 3 transactions and 0.1 tBNB scores 30 + 25 + 15 = 70, so its payment counts. A wallet with 2 transactions scores at most 50.</p>
+  </div></section>`;
+}
+
 function gatePage() {
   const g = state.gate;
   const extra = g?.onChain ? g.counted + g.flagged - g.payments.length : 0;
@@ -260,6 +284,7 @@ function gatePage() {
   return `<div class="wrap"><section class="page-head"><h1>Every payment, counted or not.</h1><p>Product payments are tracked apart from token-sale proceeds. A payment that doesn't count is still recorded, with the reason.</p></section></div>
   ${gateBand()}
   ${g?.openfour ? openFourPanel(g.openfour) : ''}
+  ${scoreGuide()}
   <section class="ledger"><div class="wrap">
     <div class="ledger-head"><div><h2>Payments</h2><p class="ledger-note">A counted payment shows a genuine-looking wallet. It doesn't prove independent demand.</p></div>
     <button class="btn quiet" data-action="refresh" ${state.gateBusy ? 'disabled' : ''}>${state.gateBusy ? 'Refreshing…' : 'Refresh'}</button></div>

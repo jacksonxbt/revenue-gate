@@ -193,3 +193,20 @@ button, input { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .track-fill, .writing::before { animation: none; }
 }
+
+/* Score guide */
+.sg { padding: 3rem 0 0; }
+.sg-grid { margin-top: 1.5rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem 2.5rem; border-top: 2px solid var(--green); padding-top: 1.25rem; }
+.sg-group h3 { font-size: 1.05rem; font-weight: 600; }
+.sg-group h3 span { font-weight: 400; color: var(--muted); font-size: .92rem; margin-left: .35rem; }
+.sg-group p { color: var(--muted); font-size: .95rem; margin-top: .25rem; min-height: 2.9em; }
+.sg-group ul { list-style: none; margin: .9rem 0 0; padding: 0; }
+.sg-group li { display: grid; grid-template-columns: 8.2rem 1fr 2rem; align-items: center; gap: .7rem; padding: .4rem 0; border-bottom: 1px solid var(--line); font-size: .95rem; }
+.sg-bar { height: .7rem; background: var(--mint); border-radius: 2px; overflow: hidden; }
+.sg-bar i { display: block; height: 100%; width: var(--w); background: var(--green); }
+.sg-pts { font-family: var(--mono); text-align: right; font-size: .9rem; }
+.sg-scale { margin-top: 1.75rem; display: grid; grid-template-columns: 60fr 40fr; font-size: .92rem; font-weight: 600; }
+.sg-scale span { padding: .55rem .8rem; }
+.sg-no { background: #F6E4E0; color: var(--red); border-radius: 4px 0 0 4px; }
+.sg-yes { background: var(--green); color: #fff; border-radius: 0 4px 4px 0; }
+@media (max-width: 860px) { .sg-grid { grid-template-columns: 1fr; } .sg-group p { min-height: 0; } }
