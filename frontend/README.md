@@ -1,5 +1,18 @@
 # Revenue Gate frontend
 
+## Status as built, 26 Nov 2026
+
+The sections below this one are Jackson's original brief and are partly out of date.
+
+- Live mode is connected. `live.js` points at the page's own origin when the backend serves it, and at the hosted API when previewed with `npm start`.
+- `live-view.js` was removed; `app.js` renders both demo and live modes from one set of views.
+- The research flow has a Pay with MetaMask button (connect, switch to chain 97, send the quoted amount, verify once confirmed). Pasting a transaction hash remains as a fallback.
+- The Gate page shows gate progress read from the contract, the payment list with each wallet score and reason, and the OpenFour token status.
+- `logo.svg` is the project mark.
+- Tests: `npm test` (5 passing).
+
+## Original brief
+
 Run from this directory with Node 22+: `npm start`; visit http://127.0.0.1:4173. No install or secret is needed. Run `npm test` for the demo adapter checks. Static hosting can serve index.html, styles.css, app.js, adapter.js, live.js and live-view.js together. Demo state resets on refresh.
 
 ## Integration handoff

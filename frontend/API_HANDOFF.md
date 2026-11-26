@@ -1,4 +1,16 @@
-# Live integration contract proposal
+# Live integration contract
+
+## Status as built, 26 Nov 2026
+
+The backend implements the four operations below as `POST /api/quote`, `/api/payment`, `/api/report` and `/api/launch`. Differences from the proposal:
+
+- Transport is same-origin HTTP with a 30-second timeout (the AI calls can take several seconds). HTTPS is not set up on the hosted server.
+- `payment` also returns `confidence` (0 to 100) and `onChainTx` (the gate-contract write). A transfer that is not found yet returns `status: pending`; a failed check returns `status: failed`; both carry a `reason`.
+- `report` returns HTTP 402 until the request has a confirmed payment.
+- `launch` returns `enforcement: "on-chain"`, plus `onChainProgress` (totals read from the RevenueGate contract) and `openfour` (the OpenFour token's sale state and the migrate module's answer).
+- The UI can initiate a transfer through MetaMask; see `docs/DECISIONS.md`.
+
+## Original proposal
 
 Coordination: https://github.com/jacksonxbt/revenue-gate/issues/2
 
