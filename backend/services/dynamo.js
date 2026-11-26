@@ -15,8 +15,18 @@ export async function putPayment(payment) {
 }
 
 export async function getPayments() {
-  const result = await doc.send(new ScanCommand({ TableName: TABLES.payments }));
-  return result.Items || [];
+  const items = [];
+  let cursor;
+  do {
+    const page = await doc.send(new ScanCommand({
+      TableName: TABLES.payments,
+      ConsistentRead: true,
+      ExclusiveStartKey: cursor,
+    }));
+    items.push(...(page.Items || []));
+    cursor = page.LastEvaluatedKey;
+  } while (cursor);
+  return items;
 }
 
 export async function putQuote(quote) {

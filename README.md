@@ -8,7 +8,7 @@ Everything here runs on BNB Smart Chain testnet (chain 97) with test funds only.
 
 ## How it works
 
-1. A user pays 0.01 tBNB for the product, an AI-written research report.
+1. A user pays 0.01 tBNB for the product, a sourced token research report.
 2. The server reads the transfer from the chain and checks that it succeeded, went to the quoted address, sent the full amount and has not been used before.
 3. An AI model scores the paying wallet from 0 to 100 using its testnet balance and history.
 4. The server, acting as oracle, records the payment and score in the `RevenueGate` contract. A score of 60 or more counts and is added to the total; anything lower is recorded but not counted.
@@ -77,7 +77,7 @@ Tests:
 | Path | Contents |
 |---|---|
 | `contracts/` | `RevenueGate.sol`, the OpenFour migrate module, vendored OpenFour interfaces, Hardhat tests, deployment records |
-| `backend/` | Node.js API: quotes, on-chain payment checks, AI scoring and reports, oracle writes, OpenFour status reads |
+| `backend/` | Node.js API: quotes, on-chain payment checks, AI wallet activity scoring and sourced reports, oracle writes, OpenFour status reads |
 | `frontend/` | Dependency-free web app, served by the backend |
 | `docs/` | Product spec, decisions, tasks and demo outline |
 
@@ -105,6 +105,14 @@ cd frontend && npm test
 
 `USE_DYNAMO=true` switches storage from in-memory to DynamoDB and also saves reports to S3; it needs AWS credentials with access to the `RevenueGate*` tables.
 
+## Wallet activity and research evidence
+
+Set `PROJECT_WALLET_ADDRESSES` to a comma-separated list of known project-controlled addresses before deployment. The recipient and configured contract-writing signer are excluded automatically. The payer's testnet balance, outgoing transaction count and contract-code check inform the wallet activity assessment. The minimum qualifying score is 60. Activity alone cannot establish who controls a wallet or prove customer demand.
+
+Research requests use `bsc:0x…` with the full BNB Smart Chain **mainnet** token contract address. Payment remains on testnet. The report shows USD liquidity from the largest matching pool returned by DEX Screener, with its source link and retrieval time. Missing data, a mismatched token, or a response with missing or stale freshness metadata yields **Unavailable**. The response freshness check uses HTTP Date and Age because the endpoint supplies no liquidity observation timestamp. The report figure and accompanying text are generated from validated data and a fixed template.
+
+Run the payment-policy and research evidence tests with `cd backend && npm test`.
+
 ## API
 
 All routes are `POST` with a JSON body, under `/api`.
@@ -118,7 +126,7 @@ All routes are `POST` with a JSON body, under `/api`.
 
 ## Built with
 
-Solidity 0.8.24 and Hardhat; Node.js with ethers v6; Groq API (`openai/gpt-oss-120b`) for scoring and reports; AWS EC2, DynamoDB, S3 and CloudWatch.
+Solidity 0.8.24 and Hardhat; Node.js with ethers v6; Groq API (`openai/gpt-oss-120b`) for wallet activity scoring; AWS EC2, DynamoDB, S3 and CloudWatch.
 
 ## Licences
 

@@ -33,6 +33,11 @@ export function validatePayment(o){
 export function validateReport(o){
   requireObject(o);if(!['pending','ready','failed'].includes(o.status))throw new Error('Invalid report status.');
   if(o.status==='ready'&&(typeof o.title!=='string'||typeof o.summary!=='string'||!Array.isArray(o.observations)||!o.observations.every(v=>typeof v==='string')||!Array.isArray(o.sources)||!o.sources.length||!o.sources.every(v=>typeof v?.label==='string'&&safeSource(v.url))))throw new Error('Invalid sourced report.');
+  if(o.status==='ready' && o.liquidity && (o.liquidity.source!=='DEX Screener' ||
+    !['available','unavailable'].includes(o.liquidity.status) ||
+    (o.liquidity.status==='available' && (!Number.isFinite(o.liquidity.usd) || o.liquidity.usd<0 ||
+      !Number.isFinite(Date.parse(o.liquidity.retrievedAt)) || !Number.isFinite(Date.parse(o.liquidity.expiresAt)) || !o.token || o.token.chain!=='bsc' ||
+      !/^0x[0-9a-f]{40}$/i.test(o.token.address))))) throw new Error('Invalid liquidity data.');
   return o;
 }
 export function validateLaunch(o){

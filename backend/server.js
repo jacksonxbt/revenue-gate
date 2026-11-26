@@ -2,7 +2,9 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { generateReport } from "./services/research.js";
+import { computeAddress } from "ethers";
+import { findPreviousPayment, isProjectPayer, withPaymentHash } from "./services/payment-policy.js";
+import { generateReport, parseResearchToken } from "./services/research.js";
 import { verifyPayment, checkTransfer } from "./services/verification.js";
 import { recordPaymentOnChain, getGraduationProgress } from "./services/onchain.js";
 import { getOpenFourStatus } from "./services/openfour.js";
@@ -37,6 +39,16 @@ const REPORT_PRICE_WEI = "10000000000000000"; // 0.01 BNB
 const TARGET_WEI = "500000000000000000"; // 0.5 BNB (50 payments x 0.01)
 const RECIPIENT = process.env.RECIPIENT_ADDRESS || "0xc2013a8a76bac5914a88bf2f809334468332589d";
 const USE_DYNAMO = process.env.USE_DYNAMO === "true";
+
+function projectWallets() {
+  const wallets = (process.env.PROJECT_WALLET_ADDRESSES || "").split(",");
+  try {
+    if (process.env.DEPLOYER_PRIVATE_KEY) wallets.push(computeAddress(process.env.DEPLOYER_PRIVATE_KEY));
+  } catch {
+    // The on-chain writer independently handles an invalid signer configuration.
+  }
+  return wallets;
+}
 
 function bnbToWei(bnb) {
   return String(BigInt(Math.round(bnb * 1e18)));
@@ -104,14 +116,6 @@ async function saveReport(requestId, report) {
   db.reports.set(requestId, report);
 }
 
-async function loadReport(requestId) {
-  if (USE_DYNAMO) {
-    const r = await dynamo.getReport(requestId);
-    if (r) return r;
-  }
-  return db.reports.get(requestId) || null;
-}
-
 const server = createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, null);
 
@@ -124,13 +128,13 @@ const server = createServer(async (req, res) => {
       if (chainId && chainId !== CHAIN_ID) {
         return json(res, 400, { error: "Only BNB testnet (97) supported" });
       }
-      if (!asset || typeof asset !== "string" || asset.length > 40) {
-        return json(res, 400, { error: "Invalid asset (1-40 chars)" });
-      }
+      const token = parseResearchToken(asset);
+      if (!token) return json(res, 400, { error: "Enter a BNB Smart Chain mainnet token as bsc:0x followed by its 40-character contract address." });
       const requestId = "REQ-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
       const quote = {
         requestId,
-        asset: asset.trim().toUpperCase(),
+        asset: `${token.chain}:${token.address}`,
+        token,
         chainId: CHAIN_ID,
         amountWei: REPORT_PRICE_WEI,
         recipient: RECIPIENT,
@@ -162,59 +166,60 @@ const server = createServer(async (req, res) => {
         chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status, confirmations: 0, assessment: "pending", reason,
       });
 
-      const previous = (await loadPayments()).find((p) => p.txHash?.toLowerCase() === txHash.toLowerCase());
-      if (previous && previous.id !== requestId) {
-        return notConfirmed("failed", "This transaction already paid for another report. Send a new transfer for this one.");
-      }
+      return await withPaymentHash(txHash, async (paymentHash) => {
+        const previous = findPreviousPayment(await loadPayments(), paymentHash);
+        if (previous && previous.id !== requestId) {
+          return notConfirmed("failed", "This transaction already paid for another report. Send a new transfer for this one.");
+        }
 
-      const transfer = await checkTransfer(txHash, quote.recipient || RECIPIENT, REPORT_PRICE_WEI);
-      if (transfer.status !== "confirmed") return notConfirmed(transfer.status, transfer.reason);
+        const transfer = await checkTransfer(txHash, quote.recipient || RECIPIENT, REPORT_PRICE_WEI);
+        if (transfer.status !== "confirmed") return notConfirmed(transfer.status, transfer.reason);
 
-      if (previous) {
+        if (previous) {
+          if (quote.status !== "confirmed") await saveQuote({ ...quote, status: "confirmed" });
+          return json(res, 200, {
+            chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status: "confirmed",
+            confirmations: transfer.confirmations, assessment: previous.verification.assessment,
+            reason: previous.verification.reasoning, confidence: previous.verification.confidence, onChainTx: previous.onChainTx,
+          });
+        }
+
+        const walletAddress = transfer.from;
+        const excluded = isProjectPayer(walletAddress, quote.recipient || RECIPIENT, projectWallets());
+        const verification = await verifyPayment(walletAddress, excluded);
+
+        const onChainTx = await recordPaymentOnChain(
+          `bsc-testnet:${paymentHash}`,
+          walletAddress,
+          verification.confidence,
+          REPORT_PRICE_WEI
+        );
+
+        const payment = {
+          id: requestId,
+          walletAddress,
+          asset: quote.asset,
+          amount: 0.01,
+          txHash: paymentHash,
+          onChainTx,
+          timestamp: new Date().toISOString(),
+          verification,
+        };
+        await savePayment(payment);
+        quote.status = "confirmed";
+        await saveQuote(quote);
+
         return json(res, 200, {
-          chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status: "confirmed",
-          confirmations: transfer.confirmations, assessment: previous.verification.assessment,
-          reason: previous.verification.reasoning, confidence: previous.verification.confidence, onChainTx: previous.onChainTx,
+          chainId: CHAIN_ID,
+          txHash,
+          amountWei: REPORT_PRICE_WEI,
+          status: "confirmed",
+          confirmations: transfer.confirmations,
+          assessment: verification.assessment,
+          reason: verification.reasoning,
+          confidence: verification.confidence,
+          onChainTx,
         });
-      }
-
-      const walletAddress = transfer.from;
-      const verification = await verifyPayment(walletAddress);
-      // The contract counts a payment when confidence >= 60, so the label follows the same rule.
-      verification.confidence = Math.max(0, Math.min(100, Math.round(Number(verification.confidence) || 0)));
-      verification.assessment = verification.confidence >= 60 ? "eligible" : "flagged";
-
-      const onChainTx = await recordPaymentOnChain(
-        requestId,
-        walletAddress,
-        verification.confidence,
-        REPORT_PRICE_WEI
-      );
-
-      const payment = {
-        id: requestId,
-        walletAddress,
-        asset: quote.asset,
-        amount: 0.01,
-        txHash,
-        onChainTx,
-        timestamp: new Date().toISOString(),
-        verification,
-      };
-      await savePayment(payment);
-      quote.status = "confirmed";
-      await saveQuote(quote);
-
-      return json(res, 200, {
-        chainId: CHAIN_ID,
-        txHash,
-        amountWei: REPORT_PRICE_WEI,
-        status: "confirmed",
-        confirmations: transfer.confirmations,
-        assessment: verification.assessment,
-        reason: verification.reasoning,
-        confidence: verification.confidence,
-        onChainTx,
       });
     }
 
@@ -232,19 +237,7 @@ const server = createServer(async (req, res) => {
         return json(res, 402, { error: "Pay for this report before requesting it" });
       }
 
-      const existing = await loadReport(requestId);
-      if (existing) {
-        return json(res, 200, existing);
-      }
-
-      const report = await generateReport(quote.asset);
-      const formatted = {
-        status: "ready",
-        title: report.title,
-        summary: report.summary,
-        observations: report.observations.filter(Boolean),
-        sources: report.sources.filter((s) => s.url && s.label),
-      };
+      const formatted = await generateReport(quote.token ?? parseResearchToken(quote.asset));
       await saveReport(requestId, formatted);
       if (USE_DYNAMO) {
         try { await uploadReport(requestId, formatted); } catch (e) { console.error("S3 upload failed:", e.message); }
@@ -274,9 +267,13 @@ const server = createServer(async (req, res) => {
         });
       }
 
-      const eligible = allPayments.filter(
-        (p) => p.verification && p.verification.confidence >= 60
-      );
+      const seenHashes = new Set();
+      const eligible = allPayments.filter((p) => {
+        const hash = p.txHash?.toLowerCase();
+        if (!hash || seenHashes.has(hash)) return false;
+        seenHashes.add(hash);
+        return p.verification?.assessment === "eligible";
+      });
       const revenueWei = bnbToWei(
         eligible.reduce((sum, p) => sum + p.amount, 0)
       );

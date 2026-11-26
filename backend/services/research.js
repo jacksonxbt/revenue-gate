@@ -1,61 +1,56 @@
-import { chatCompletion } from "./groq.js";
+const ADDRESS = /^0x[0-9a-f]{40}$/i;
+const MAX_AGE_MS = 5 * 60 * 1000;
+const SOURCE = "DEX Screener";
 
-const SYSTEM_PROMPT = `You are a crypto research analyst. Given an asset name or symbol, produce a structured research report. Be factual and balanced. Never give financial advice or buy/sell recommendations.
-
-Return JSON with this exact shape:
-{
-  "title": "Asset Name Research Report",
-  "summary": "2-3 sentence overview of the asset",
-  "metrics": {
-    "category": "Layer 1 / DeFi / Meme / etc",
-    "chain": "which blockchain",
-    "launchYear": "year or unknown"
-  },
-  "observations": [
-    "observation 1 about fundamentals",
-    "observation 2 about recent activity",
-    "observation 3 about risks or concerns"
-  ],
-  "risks": [
-    "risk 1",
-    "risk 2"
-  ],
-  "sources": [
-    {"label": "source name", "url": "https://..."}
-  ]
+export function parseResearchToken(asset) {
+  if (typeof asset !== "string") return null;
+  // The research chain is independent of the testnet payment chain.
+  const [chain, address, extra] = asset.trim().toLowerCase().split(":");
+  return chain === "bsc" && ADDRESS.test(address ?? "") && extra === undefined
+    ? { chain, address } : null;
 }
 
-Only return valid JSON, no markdown fences, no extra text.`;
-
-export async function generateReport(asset) {
-  const raw = await chatCompletion({
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Research report for: ${asset}` },
-    ],
-    temperature: 0.3,
-    max_tokens: 1024,
-    response_format: { type: "json_object" },
-  });
-
-  let report;
+export async function getLiquidity(token, { request = fetch, now = Date.now } = {}) {
+  const unavailable = { status: "unavailable", source: SOURCE };
+  if (!token) return unavailable;
   try {
-    report = JSON.parse(raw);
-  } catch {
-    report = {
-      title: `${asset} Research Report`,
-      summary: "Report generation encountered a parsing issue.",
-      metrics: { category: "Unknown", chain: "Unknown", launchYear: "Unknown" },
-      observations: [raw || "No data returned"],
-      risks: ["Unable to parse structured data"],
-      sources: [],
-    };
-  }
+    const response = await request(`https://api.dexscreener.com/token-pairs/v1/${token.chain}/${token.address}`, {
+      signal: AbortSignal.timeout(5000),
+      cache: "no-store",
+    });
+    if (!response.ok) return unavailable;
+    const pairs = await response.json();
+    const retrieved = now();
+    const date = Date.parse(response.headers.get("date"));
+    const age = Number(response.headers.get("age") ?? 0) * 1000;
+    if (!Number.isFinite(date) || date > retrieved + 30000 || !Number.isFinite(age) || age < 0 ||
+        Math.max(retrieved - date, age) >= MAX_AGE_MS || !Array.isArray(pairs)) return unavailable;
 
+    const pair = pairs.filter(p => p?.chainId === token.chain && ADDRESS.test(p.pairAddress ?? "") &&
+      [p.baseToken, p.quoteToken].some(t => t?.address?.toLowerCase?.() === token.address) &&
+      Number.isFinite(p.liquidity?.usd) && p.liquidity.usd >= 0)
+      .sort((a, b) => b.liquidity.usd - a.liquidity.usd)[0];
+    if (!pair) return unavailable;
+    return {
+      status: "available", source: SOURCE, usd: pair.liquidity.usd,
+      url: `https://dexscreener.com/${token.chain}/${pair.pairAddress}`,
+      retrievedAt: new Date(retrieved).toISOString(),
+      expiresAt: new Date(retrieved + MAX_AGE_MS - Math.max(0, retrieved - date, age)).toISOString(),
+    };
+  } catch {
+    return unavailable;
+  }
+}
+
+export async function generateReport(token) {
+  const liquidity = await getLiquidity(token);
   return {
-    id: "RPT-" + String(Date.now()).slice(-8),
-    asset,
-    createdAt: new Date().toISOString(),
-    ...report,
+    status: "ready",
+    title: "Token research report",
+    summary: "Pool liquidity describes funds in one trading pool. It does not establish token legitimacy or predict how much a buyer can trade.",
+    token,
+    liquidity,
+    observations: [],
+    sources: [{ label: SOURCE, url: liquidity.url ?? "https://dexscreener.com" }],
   };
 }

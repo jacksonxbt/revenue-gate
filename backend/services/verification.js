@@ -1,3 +1,4 @@
+import { assessWalletActivity } from "./payment-policy.js";
 import { chatCompletion } from "./groq.js";
 
 const RPC_URL = () =>
@@ -47,6 +48,9 @@ async function getWalletProfile(address) {
     rpcCall("eth_getCode", [address, "latest"]),
   ]);
 
+  if (![balanceHex, txCountHex, code].every(value => typeof value === "string" && /^0x[0-9a-f]*$/i.test(value)) || !Number.isFinite(parseInt(balanceHex, 16)) || !Number.isSafeInteger(parseInt(txCountHex, 16))) {
+    throw new Error("Incomplete wallet data");
+  }
   return {
     address,
     balanceBNB: parseInt(balanceHex, 16) / 1e18,
@@ -55,71 +59,32 @@ async function getWalletProfile(address) {
   };
 }
 
-const VERIFY_PROMPT = `You are a payment verification analyst for a token launch platform. Given wallet data, assess whether this payment looks like genuine product usage or potential wash trading.
+const VERIFY_PROMPT = `Score observable testnet wallet activity. Return only JSON with a numeric confidence from 0 to 100.
+Use the existing scoring guide: more than 10 outgoing transactions and reasonable balance typically scores 70–95; 3–10 transactions typically scores 40–69; 0–2 transactions or very low balance typically scores 10–39. Do not infer wallet ownership, intent, or customer demand.`;
 
-Return JSON with this exact shape:
-{
-  "confidence": 0-100,
-  "assessment": "eligible" or "flagged" or "uncertain",
-  "evidence": [
-    "evidence point 1",
-    "evidence point 2"
-  ],
-  "reasoning": "one sentence explanation"
-}
-
-Scoring guide:
-- Wallet with many transactions (>10) and reasonable balance: high confidence (70-95)
-- Wallet with some history (3-10 tx): medium confidence (40-69)
-- Brand new wallet (0-2 tx) or very low balance: low confidence (10-39), likely flagged
-- Contract address paying: flagged (could be automated)
-
-Be honest about limitations: on-chain signals only, cannot confirm real-world identity or intent.
-
-Only return valid JSON, no markdown fences, no extra text.`;
-
-export async function verifyPayment(walletAddress) {
+export async function verifyPayment(walletAddress, excluded = false) {
+  if (excluded) return assessWalletActivity(null, null, true);
   let profile;
   try {
     profile = await getWalletProfile(walletAddress);
-  } catch (err) {
-    return {
-      confidence: 0,
-      assessment: "uncertain",
-      evidence: ["Could not fetch wallet data: " + err.message],
-      reasoning: "RPC call failed, cannot assess wallet.",
-      walletProfile: null,
-    };
-  }
-
-  const raw = await chatCompletion({
-    messages: [
-      { role: "system", content: VERIFY_PROMPT },
-      {
-        role: "user",
-        content: `Verify this wallet:\nAddress: ${profile.address}\nBalance: ${profile.balanceBNB.toFixed(4)} BNB\nTransaction count: ${profile.transactionCount}\nIs contract: ${profile.isContract}`,
-      },
-    ],
-    temperature: 0.1,
-    max_tokens: 512,
-    response_format: { type: "json_object" },
-  });
-
-  let result;
-  try {
-    result = JSON.parse(raw);
   } catch {
-    result = {
-      confidence: 30,
-      assessment: "uncertain",
-      evidence: ["AI response could not be parsed"],
-      reasoning: "Verification encountered a parsing issue.",
-    };
+    return assessWalletActivity(null, null);
   }
 
-  return {
-    ...result,
-    walletProfile: profile,
-    verifiedAt: new Date().toISOString(),
-  };
+  let score;
+  try {
+    const raw = await chatCompletion({
+      messages: [
+        { role: "system", content: VERIFY_PROMPT },
+        { role: "user", content: JSON.stringify({ balanceBNB: profile.balanceBNB, transactionCount: profile.transactionCount }) },
+      ],
+      temperature: 0.1,
+      max_tokens: 512,
+      response_format: { type: "json_object" },
+    });
+    score = JSON.parse(raw).confidence;
+  } catch {
+    // Payments can still receive a report when scoring is unavailable.
+  }
+  return { ...assessWalletActivity(profile, score), walletProfile: profile, verifiedAt: new Date().toISOString() };
 }
