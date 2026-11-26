@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { generateReport } from "./services/research.js";
-import { verifyPayment } from "./services/verification.js";
+import { verifyPayment, checkTransfer } from "./services/verification.js";
 import { recordPaymentOnChain, getGraduationProgress } from "./services/onchain.js";
 import * as dynamo from "./services/dynamo.js";
 import { uploadReport } from "./services/s3.js";
@@ -34,7 +34,7 @@ const PORT = process.env.PORT || 3001;
 const CHAIN_ID = 97;
 const REPORT_PRICE_WEI = "10000000000000000"; // 0.01 BNB
 const TARGET_WEI = "500000000000000000"; // 0.5 BNB (50 payments x 0.01)
-const RECIPIENT = process.env.RECIPIENT_ADDRESS || "0x0000000000000000000000000000000000000000";
+const RECIPIENT = process.env.RECIPIENT_ADDRESS || "0xc2013a8a76bac5914a88bf2f809334468332589d";
 const USE_DYNAMO = process.env.USE_DYNAMO === "true";
 
 function bnbToWei(bnb) {
@@ -153,8 +153,34 @@ const server = createServer(async (req, res) => {
         return json(res, 404, { error: "Quote not found" });
       }
 
-      const walletAddress = req.headers["x-wallet-address"] || "0x0000000000000000000000000000000000000001";
+      if (!/^0x[0-9a-f]{64}$/i.test(txHash)) {
+        return json(res, 400, { error: "txHash must be 0x followed by 64 hex characters" });
+      }
+      const notConfirmed = (status, reason) => json(res, 200, {
+        chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status, confirmations: 0, assessment: "pending", reason,
+      });
+
+      const previous = (await loadPayments()).find((p) => p.txHash?.toLowerCase() === txHash.toLowerCase());
+      if (previous && previous.id !== requestId) {
+        return notConfirmed("failed", "This transaction already paid for another report. Send a new transfer for this one.");
+      }
+
+      const transfer = await checkTransfer(txHash, quote.recipient || RECIPIENT, REPORT_PRICE_WEI);
+      if (transfer.status !== "confirmed") return notConfirmed(transfer.status, transfer.reason);
+
+      if (previous) {
+        return json(res, 200, {
+          chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status: "confirmed",
+          confirmations: transfer.confirmations, assessment: previous.verification.assessment,
+          reason: previous.verification.reasoning, onChainTx: previous.onChainTx,
+        });
+      }
+
+      const walletAddress = transfer.from;
       const verification = await verifyPayment(walletAddress);
+      // The contract counts a payment when confidence >= 60, so the label follows the same rule.
+      verification.confidence = Math.max(0, Math.min(100, Math.round(Number(verification.confidence) || 0)));
+      verification.assessment = verification.confidence >= 60 ? "eligible" : "flagged";
 
       const onChainTx = await recordPaymentOnChain(
         requestId,
@@ -182,7 +208,7 @@ const server = createServer(async (req, res) => {
         txHash,
         amountWei: REPORT_PRICE_WEI,
         status: "confirmed",
-        confirmations: 1,
+        confirmations: transfer.confirmations,
         assessment: verification.assessment,
         reason: verification.reasoning,
         onChainTx,
@@ -198,6 +224,9 @@ const server = createServer(async (req, res) => {
       const quote = await loadQuote(requestId);
       if (!quote) {
         return json(res, 404, { error: "Quote not found" });
+      }
+      if (quote.status !== "confirmed") {
+        return json(res, 402, { error: "Pay for this report before requesting it" });
       }
 
       const existing = await loadReport(requestId);
@@ -270,6 +299,19 @@ const server = createServer(async (req, res) => {
         reports: db.reports.size,
         quotes: db.quotes.size,
       });
+    }
+
+    // Serve frontend static files
+    const frontendDir = resolve(__dirname, "../frontend");
+    const filePath = url.pathname === "/" ? resolve(frontendDir, "index.html") : resolve(frontendDir, url.pathname.slice(1));
+    if (filePath.startsWith(frontendDir) && existsSync(filePath)) {
+      const mimeTypes = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml" };
+      const ext = extname(filePath);
+      try {
+        const content = readFileSync(filePath);
+        res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream", "Access-Control-Allow-Origin": "*" });
+        return res.end(content);
+      } catch {}
     }
 
     json(res, 404, { error: "Not found" });
