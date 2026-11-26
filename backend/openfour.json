@@ -1,0 +1,16 @@
+{
+  "network": "BNB Smart Chain testnet (developer-owned OpenFour fork)",
+  "core": "0x47bbd1Fef75cD12EE89d66375652DFDaC3D34f15",
+  "registry": "0x60fC4573E855352aac3b4DB1Ee32a78558902313",
+  "presetId": "1795681909735",
+  "presetName": "Revenue Gate",
+  "token": "0xBb9C33F7c3A0813ed8b7DC767ce577DF305816aE",
+  "name": "Revenue Gate Demo",
+  "symbol": "RGATE",
+  "vault": "0x81C57D30548de9c89399480766Dd340A427838E4",
+  "migrateModule": "0xf62f8f7451ae6dad3aa1380844719bc908AD8872",
+  "migrateTag": "module.migrate.revenue_gate",
+  "softCapWei": "1000000000000000",
+  "createTx": "0xef7abaacc087fee08fd6b0c336cfb67e420c745c9dbcafea5e32049cc69c304c",
+  "buyTx": "0xa051b3f4dc4e70b3782c218e252943bb8740f8aca02a83e0168d795b83ddc36d"
+}

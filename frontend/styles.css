@@ -148,6 +148,18 @@ button, input { font: inherit; color: inherit; }
 
 .linkbtn { background: none; border: 0; padding: 0; color: var(--green); text-decoration: underline; cursor: pointer; font-weight: 500; text-align: left; }
 
+.of { padding: clamp(2.5rem, 6vw, 4rem) 0 0; }
+.of-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem 2rem; flex-wrap: wrap; }
+.of h2 { font-family: var(--display); font-weight: 600; font-size: clamp(1.4rem, 3vw, 1.9rem); letter-spacing: -.015em; }
+.of-state { font-size: 1rem; padding: .3rem .9rem; }
+.of-checks { margin-top: 1.5rem; border-top: 2px solid var(--green); }
+.of-checks li { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.of-checks h3 { font-size: 1.05rem; font-weight: 600; }
+.of-checks p { color: var(--muted); max-width: 44rem; }
+.of-facts { margin-top: 1.4rem; display: flex; gap: 1rem 2.5rem; flex-wrap: wrap; }
+.of-facts dt { font-size: .88rem; color: var(--muted); }
+.of .ledger-note { margin-top: .6rem; }
+
 /* Ledger */
 .ledger { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3rem, 7vw, 5rem); }
 .ledger-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; flex-wrap: wrap; }

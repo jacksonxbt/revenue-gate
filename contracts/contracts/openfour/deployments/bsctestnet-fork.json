@@ -1,0 +1,158 @@
+{
+  "network": "bsctestnet",
+  "chainId": 97,
+  "deployedAt": "2026-11-26T08:30:44.096Z",
+  "deployer": "0xc2013a8a76BAC5914a88bf2F809334468332589d",
+  "forkedFrom": "/private/tmp/claude-501/-Users-khantwaiyan-Desktop-BnB-revenue-gate-backend/25a58986-6def-4a37-aea0-92f5e3f89206/scratchpad/of/openfour-docs/developer/fork-deploy/source/bsctestnet.json",
+  "source": {
+    "registry": "0xE5014c0616e528B0ABF7CC120A58032c1FbE7060",
+    "feeRouter": "0x5BEA99298A6E731897ef2516EafC1f0289e0cc87",
+    "core": "0xd6DAC7815A3B007822E0829bcDB3f193041285Db",
+    "createDeployer": "0x8B67c37f17856B13Ff86A33Cc5386bC0A589D37B",
+    "tools": "0xdECbE01E91A3c0Abf841d3E32c1587a3b62E38c6",
+    "taxVaultRegistry": "0x08477C50B5831cc22c33C8efAb8FbC97f3ec5864",
+    "forwardVaultImpl": "0xf2171bAbC2142F192eFF889D577642ad55b44091"
+  },
+  "reusedImplementations": {
+    "registry": "0x4539839A0DC318E6dcFb43AaaEEfc391C85f4071",
+    "feeRouter": "0xdFD0946F09c1d262A123345B82a2439797AB9459",
+    "core": "0xEDF713d363b481cFB1824De1312c88D0bA541033",
+    "createDeployer": "0x52CF037688250c9da64DdCa84895B864C7D8F694",
+    "tools": "0x616d05Bd917ca68cb90117E7C7594ee5456520b9"
+  },
+  "config": {
+    "treasury": "0xc2013a8a76BAC5914a88bf2F809334468332589d",
+    "signer": "0xc2013a8a76BAC5914a88bf2F809334468332589d",
+    "presetAuthor": "0xc2013a8a76BAC5914a88bf2F809334468332589d",
+    "wbnb": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+    "feeConfig": {
+      "protocolFeeBps": 50,
+      "developerFeePoolBps": 50,
+      "maxProtocolDevFeeBps": 100,
+      "maxTaxBps": 1000,
+      "maxTaxTiers": 5,
+      "partnerProtocolShareBps": "0",
+      "placeholder2": "0",
+      "placeholder3": "0",
+      "placeholder4": "0",
+      "placeholder5": "0",
+      "placeholder6": "0"
+    }
+  },
+  "addresses": {
+    "registry": "0x60fC4573E855352aac3b4DB1Ee32a78558902313",
+    "feeRouter": "0xcfF9F15e569935Fbf788dE4B7A7F9E40ddfB6481",
+    "core": "0x47bbd1Fef75cD12EE89d66375652DFDaC3D34f15",
+    "createDeployer": "0x09F372F2a1Ce18ba6C92837F72cA0fa46D3f2a45",
+    "tools": "0x6F8279f118141e442cc204143b970670d96ff1AC",
+    "wbnb": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+    "taxVaultRegistry": "0x08477C50B5831cc22c33C8efAb8FbC97f3ec5864",
+    "forwardVaultImpl": "0xf2171bAbC2142F192eFF889D577642ad55b44091",
+    "tokenImpl": "0xAE27264A3eCd3d152A6fa01E0860Fc12100687Fe",
+    "taxTokenImpl": "0x2E2Ffb402ECC90A83392e345eB004afFdC5e755C",
+    "stock4TaxTokenImpl": "0x6aCcA8168beF35f4591295d39c851C4cc40Cd30c",
+    "validator": "0xD8590b6914d4D60FcCfe08A2087B9A3d3F2d6A70"
+  },
+  "moduleIds": {
+    "TOKEN_STANDARD": "0x48f90f4115ab8ef5e9e882e46964405e86bb62323d676b602350fc8baef2637e",
+    "VAULT_BASIC": "0x3e7c54e066dccd796d82c61050797d9b41fc573ce6b95b1968fb6e21c9df315b",
+    "CURVE_BONDING": "0x0e4ee145a2864ef2ac97032a3c00ed121816998110d1cf364770093ce952cb47",
+    "TRADE_SIMPLE": "0x379c13a7faced71bfa110d4297fd89666ac21c3407816ab9ef26027c15dce10d",
+    "MIGRATE_BONDING": "0x61ebdadb977338830566ff8b1ab173b121e652b69074c64dc393c15c91dc6f06",
+    "TOKEN_TAX": "0x0364231154b2db7524cec107b17e1e298311ee316534fe17913a4291a3b08c23",
+    "VAULT_TAX_BONDING": "0x75d717b5bedefe4ec3f9fb6bd971008fa464bb02d8c1bb02924dc72dc554e166",
+    "TRADE_TAX_BONDING": "0xe961124ec390bdaa2eda8956ad65d9ef0a3bc4057ff87c48ff482d21e9cdfcf1",
+    "MIGRATE_BONDING_TAX": "0x43870b0a6bc2d211e33775a06d4240a7c554c9f9017e633d94ea368199fcf1ed",
+    "TOKEN_TAX_STOCK": "0xb743f7ed02b2f1e6457bac8967b41b47a782ae2fd684eb474c956b7e30cb69fd",
+    "MIGRATE_BONDING_TAX_PCS_SIH": "0xffb9da01fb03a4dbc21e48516d77c30336b045a72f2d2a1b52dec824ccd66c1e"
+  },
+  "moduleImplementations": {
+    "TOKEN_STANDARD": "0x140E06b066671843F9178AE9F828369A436118b3",
+    "VAULT_BASIC": "0x024E84Bcf17e44C1Bdc17F27dB0D03F8539aAAfb",
+    "CURVE_BONDING": "0xf718359aB60213D5992dE0C320585BE81ee337A8",
+    "TRADE_SIMPLE": "0x8C6800696dc08f1F84308cF52fFC70b517B663AD",
+    "MIGRATE_BONDING": "0x6CcE5Cb6860CCe28e9b7bCeFA87de68Bb0E0dBbF",
+    "TOKEN_TAX": "0x7fEA9F77515051AFFD897aC43a1F6dcF0F632DF2",
+    "VAULT_TAX_BONDING": "0x7eE5A2b998397E01cB9F17d4132F24026990ebfa",
+    "TRADE_TAX_BONDING": "0xCFC7C193236764D14d4F4C8E1f413Cc5100f5692",
+    "MIGRATE_BONDING_TAX": "0xC4C9E7C10c7ADEAad7883F48e25fB4A49315D980",
+    "TOKEN_TAX_STOCK": "0xfd9D361892e43FA94B30E5fd50d3D342782007c8",
+    "MIGRATE_BONDING_TAX_PCS_SIH": "0x095A44eF450b0AFdFc372657D5e50Cf068f7fBAE"
+  },
+  "beacons": {
+    "TOKEN_STANDARD": "0x1f0C97c308214b835bF96D0D1cE174d608948174",
+    "VAULT_BASIC": "0x58d90112882cFf411B9a5020f25AA6A9E46631be",
+    "CURVE_BONDING": "0x3F551fC930c861Ae5C45f1943BE1a842844A361e",
+    "TRADE_SIMPLE": "0xB340c3aa40F6ED230449D6fbF86623B072EC4F9c",
+    "MIGRATE_BONDING": "0xc55020606CDCdadC857Fb15c1E0Ac4325977e3f3",
+    "TOKEN_TAX": "0xd01B4c17834Db7ddfb8694e672Cf7c91Cf0fbE61",
+    "VAULT_TAX_BONDING": "0xf55a829A8EbCF74D8c414d7d37d009CBCaA04426",
+    "TRADE_TAX_BONDING": "0x32465dA9029e8e961c239819376Bf480e44D75Ac",
+    "MIGRATE_BONDING_TAX": "0x7C47C24aeFB52DcA8fd7e51d2beE4F45A8053Ff5",
+    "TOKEN_TAX_STOCK": "0x7b68A3398b54521611Cd306C5684b7526712e8C9",
+    "MIGRATE_BONDING_TAX_PCS_SIH": "0x29f73b0fafA1165de9b513d37335961384b81446",
+    "MIGRATE_BONDING_TAX_PCS_SIH_IMPL": "0x095A44eF450b0AFdFc372657D5e50Cf068f7fBAE"
+  },
+  "forwardVaultTypeId": "0x31305495a6a67b3607bd1db8a49c23bbd2dc1d0fc23df7f46f7c94da62d6c99a",
+  "presets": {
+    "bondingV1": "1778027615722",
+    "bondingTaxV1": "1778027615723",
+    "stock4TaxV1": "1778027615733"
+  },
+  "stock4Sih": {
+    "manager": "0xdB4BfAE54b7f9bf88021dacE56dA9506E1F25255",
+    "managerImpl": "0x0d9aCd7Af11e0C27c80839Ccf6735FD20274E583",
+    "migrateImpl": "0x095A44eF450b0AFdFc372657D5e50Cf068f7fBAE",
+    "hookOwner": "0xD3f6eA5cEd51aa50963B005e3Cabaa7afA832168",
+    "monitor": "0x731EeA79C607cF4557B5987f71F041E0ADA28Fa1",
+    "hook": "0x630e321B0E12B24b2e5116e02FAabaD1CC6DE37a",
+    "hookImpl": "0x82e723327504C79FBe706824d790AB63Cc1A3248",
+    "taxLiquidityHelper": "0x4c0343B6ddEc20A8ed180dd551DDB1275839CDC7",
+    "quotes": [
+      "0xB179cBFdE44a9960Dd6C88bC3D163d36C65ae7C9"
+    ],
+    "sandbox": true,
+    "rolesWired": true
+  },
+  "developerModules": [
+    {
+      "keySource": "module.curve.fair_launch",
+      "moduleKey": "0xcf12d925b6d19494b2c7264f94c8c8d6d996b1e206adfa01ab72b6cf312dffe7",
+      "implementation": "0x13BF153090F5f8F7d2aa9209298e923184a5F316",
+      "kind": 2,
+      "name": "FairLaunchCurveModule",
+      "txHash": "0x08b0f295afae22d3a4094c417ed5d54a725fbbd0afb1a7399695efbe66dcc503"
+    },
+    {
+      "keySource": "module.trade.fair_launch",
+      "moduleKey": "0xcbd13a291d016f5fb04b5f037603e9b924c128007ebf6aafe47975dd83b1bc9c",
+      "implementation": "0xE3861087cc4dD2dED03Bbe10fCDE1Bb45949F317",
+      "kind": 3,
+      "name": "FairLaunchTradeModule",
+      "txHash": "0xbb3739a53b2b8b076bb4a6ada073b8a912e1d885ffbc248dcb08f680fc661252"
+    },
+    {
+      "keySource": "module.migrate.revenue_gate",
+      "moduleKey": "0xc1f70541cc76c257ec9fe39f5e8aed7b111591be86fb493dde12cf4f1d7e715f",
+      "implementation": "0xC681E759cE87681C7E4Df7b7e4d6c47FFABDDaf3",
+      "kind": 4,
+      "name": "RevenueGateMigrateModule",
+      "txHash": "0x02953c6b5a2086f14ed2691b2c0eb7f0783b7a4e43168319ff384039d41788c4"
+    },
+    {
+      "keySource": "module.data.fair_launch",
+      "moduleKey": "0x4575a33397ad0575d6ddf53c5936c517c5989cc567030f2c3ec3be0f4e75e5af",
+      "implementation": "0xF18c30Da1F881ef9B1652Bfa9C524854076d9349",
+      "kind": 5,
+      "name": "FairLaunchCustomDataModule",
+      "txHash": "0x9e9bb0105d782dec86ab3a36701a7206592547718c136a30fccf972292011c15"
+    }
+  ],
+  "developerPresets": [
+    {
+      "id": "1795681909735",
+      "name": "Revenue Gate",
+      "txHash": "0x1437fd093b6195709e4df0f5903274995ada4ed5d2e4c5814090c72e353660cd"
+    }
+  ]
+}

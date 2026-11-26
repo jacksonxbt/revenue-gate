@@ -76,9 +76,9 @@ const live = {
       goal: onChain ? `Opens at ${num(p.graduationThreshold)}` : 'Opens at ' + testnetAmount(l.targetWei),
       counted: onChain ? p.eligiblePayments : l.payments.filter(x => x.assessment === 'eligible').length,
       flagged: onChain ? p.flaggedPayments : l.payments.filter(x => x.assessment === 'flagged').length,
-      revenue: testnetAmount(l.revenueWei), onChain,
+      revenue: testnetAmount(l.revenueWei), onChain, openfour: openFourView(l.openfour),
       source: onChain && contract
-        ? `Read from gate contract ${contractLink} on BNB testnet. Each counted payment adds its wallet score, from 60 to 100. The contract records eligibility only and is not yet connected to an OpenFour launch.`
+        ? `Read from gate contract ${contractLink} on BNB testnet. Each counted payment adds its wallet score, from 60 to 100.${l.openfour ? ' OpenFour checks this contract before it graduates the token below.' : ''}`
         : 'Calculated by the Revenue Gate server. The gate contract could not be read.',
       payments: l.payments.map(x => ({ref: txLink(x.txHash), amount: testnetAmount(x.amountWei), verdict: x.assessment, reason: x.reason || '', score: Number.isFinite(x.confidence) ? x.confidence : null})),
     };
@@ -98,6 +98,42 @@ const live = {
     return r;
   },
 };
+// Validates the OpenFour block from the API before it is shown.
+function openFourView(o) {
+  if (!o || !isAddress(o.token) || !isAddress(o.core) || !isAddress(o.migrateModule)) return null;
+  if (typeof o.canGraduate !== 'boolean' || typeof o.saleConditionMet !== 'boolean' || typeof o.gateOpen !== 'boolean') return null;
+  const addr = a => `<a class="mono" href="${SCAN}/address/${a}" target="_blank" rel="noopener noreferrer" title="${a}">${short(a)}</a>`;
+  return {
+    name: String(o.name || ''), symbol: String(o.symbol || ''), preset: String(o.presetName || ''), network: String(o.network || ''),
+    phase: String(o.phase || ''), reason: String(o.reason || ''), tag: String(o.migrateTag || ''),
+    raised: testnetAmount(o.raisedWei), softCap: testnetAmount(o.softCapWei),
+    saleMet: o.saleConditionMet, gateOpen: o.gateOpen, canGraduate: o.canGraduate,
+    tokenLink: addr(o.token), coreLink: addr(o.core), moduleLink: addr(o.migrateModule),
+    buyLink: validHash(o.buyTx) ? txLink(o.buyTx) : '',
+  };
+}
+
+function openFourPanel(o) {
+  const mark = ok => `<span class="tag ${ok ? 'eligible' : 'flagged'}">${ok ? 'Met' : 'Not met'}</span>`;
+  return `<section class="of"><div class="wrap">
+    <div class="of-head"><div><h2>${esc(o.name)} (${esc(o.symbol)}) on OpenFour</h2>
+      <p class="ledger-note">A real token launched through OpenFour with the ${esc(o.preset)} preset. OpenFour asks our module before it graduates the token.</p></div>
+      <span class="tag ${o.canGraduate ? 'eligible' : 'flagged'} of-state">${o.canGraduate ? 'Can graduate' : 'Graduation blocked'}</span></div>
+    <ol class="of-checks">
+      <li><div><h3>Sale condition</h3><p>${esc(o.raised)} raised. The soft cap is ${esc(o.softCap)}.</p></div>${mark(o.saleMet)}</li>
+      <li><div><h3>Revenue Gate</h3><p>Counted product payments must reach the gate threshold.</p></div>${mark(o.gateOpen)}</li>
+      <li><div><h3>OpenFour's answer</h3><p>${o.canGraduate ? 'The module tells OpenFour Core the token can graduate.' : `The module tells OpenFour Core: “${esc(o.reason)}”.`} Token phase: ${esc(o.phase)}.</p></div></li>
+    </ol>
+    <dl class="of-facts">
+      <div><dt>Token</dt><dd>${o.tokenLink}</dd></div>
+      <div><dt>OpenFour Core</dt><dd>${o.coreLink}</dd></div>
+      <div><dt>Migrate module (${esc(o.tag)})</dt><dd>${o.moduleLink}</dd></div>
+      ${o.buyLink ? `<div><dt>Buy that passed the soft cap</dt><dd>${o.buyLink}</dd></div>` : ''}
+    </dl>
+    <p class="ledger-note">${esc(o.network)}. Not listed on the official OpenFour registry.</p>
+  </div></section>`;
+}
+
 const src = () => (state.mode === 'live' ? live : demo);
 
 /* Views */
@@ -223,6 +259,7 @@ function gatePage() {
     : g ? '<div class="empty-row"><p>No payments have come through this server yet.</p><a class="btn" href="#research">Request a report</a></div>' : '';
   return `<div class="wrap"><section class="page-head"><h1>Every payment, counted or not.</h1><p>Product payments are tracked apart from token-sale proceeds. A payment that doesn't count is still recorded, with the reason.</p></section></div>
   ${gateBand()}
+  ${g?.openfour ? openFourPanel(g.openfour) : ''}
   <section class="ledger"><div class="wrap">
     <div class="ledger-head"><div><h2>Payments</h2><p class="ledger-note">A counted payment shows a genuine-looking wallet. It doesn't prove independent demand.</p></div>
     <button class="btn quiet" data-action="refresh" ${state.gateBusy ? 'disabled' : ''}>${state.gateBusy ? 'Refreshing…' : 'Refresh'}</button></div>

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { generateReport } from "./services/research.js";
 import { verifyPayment, checkTransfer } from "./services/verification.js";
 import { recordPaymentOnChain, getGraduationProgress } from "./services/onchain.js";
+import { getOpenFourStatus } from "./services/openfour.js";
 import * as dynamo from "./services/dynamo.js";
 import { uploadReport } from "./services/s3.js";
 import { loadSecrets } from "./services/secrets.js";
@@ -268,6 +269,7 @@ const server = createServer(async (req, res) => {
           payments,
           contractAddress: process.env.CONTRACT_ADDRESS,
           onChainProgress: onChain,
+          openfour: await getOpenFourStatus(),
           evidenceTxHash: null,
         });
       }
