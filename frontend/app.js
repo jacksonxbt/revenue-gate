@@ -387,6 +387,16 @@ view.addEventListener('input', event => {
   const field = event.target.dataset.field;
   if (field) state.r[field] = event.target.value;
 });
+// Explorer links open in a new tab. Where the browser refuses a new tab (in-app wallet browsers, strict popup settings), open in this one.
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[target="_blank"]');
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  event.preventDefault();
+  const tab = window.open(link.href, '_blank');
+  if (tab) tab.opener = null;
+  else location.href = link.href;
+});
+
 view.addEventListener('click', event => {
   const el = event.target.closest('[data-action],[data-copy]');
   if (!el) return;

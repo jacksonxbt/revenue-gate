@@ -210,3 +210,5 @@ button, input { font: inherit; color: inherit; }
 .sg-no { background: #F6E4E0; color: var(--red); border-radius: 4px 0 0 4px; }
 .sg-yes { background: var(--green); color: #fff; border-radius: 0 4px 4px 0; }
 @media (max-width: 860px) { .sg-grid { grid-template-columns: 1fr; } .sg-group p { min-height: 0; } }
+a.mono { cursor: pointer; text-underline-offset: 3px; position: relative; z-index: 2; }
+a.mono:hover { color: var(--green-soft); text-decoration-thickness: 2px; }
