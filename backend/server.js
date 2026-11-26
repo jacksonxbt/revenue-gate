@@ -5,11 +5,14 @@ import { fileURLToPath } from "node:url";
 import { generateReport } from "./services/research.js";
 import { verifyPayment } from "./services/verification.js";
 import { recordPaymentOnChain, getGraduationProgress } from "./services/onchain.js";
+import * as dynamo from "./services/dynamo.js";
+import { uploadReport } from "./services/s3.js";
+import { loadSecrets } from "./services/secrets.js";
 import { db } from "./db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Load .env
+// Load .env first (fallback)
 const envPath = resolve(__dirname, "../.env");
 try {
   const envContent = readFileSync(envPath, "utf8");
@@ -24,11 +27,15 @@ try {
   }
 } catch {}
 
+// Try loading from Secrets Manager (overrides .env on EC2)
+await loadSecrets();
+
 const PORT = process.env.PORT || 3001;
 const CHAIN_ID = 97;
 const REPORT_PRICE_WEI = "10000000000000000"; // 0.01 BNB
 const TARGET_WEI = "500000000000000000"; // 0.5 BNB (50 payments x 0.01)
 const RECIPIENT = process.env.RECIPIENT_ADDRESS || "0x0000000000000000000000000000000000000000";
+const USE_DYNAMO = process.env.USE_DYNAMO === "true";
 
 function bnbToWei(bnb) {
   return String(BigInt(Math.round(bnb * 1e18)));
@@ -66,6 +73,43 @@ function formatPaymentForFrontend(p) {
   };
 }
 
+// Storage helpers -- DynamoDB when USE_DYNAMO=true, in-memory otherwise
+async function saveQuote(quote) {
+  if (USE_DYNAMO) await dynamo.putQuote(quote);
+  db.quotes.set(quote.requestId, quote);
+}
+
+async function loadQuote(requestId) {
+  if (USE_DYNAMO) {
+    const q = await dynamo.getQuote(requestId);
+    if (q) return q;
+  }
+  return db.quotes.get(requestId) || null;
+}
+
+async function savePayment(payment) {
+  if (USE_DYNAMO) await dynamo.putPayment(payment);
+  db.payments.push(payment);
+}
+
+async function loadPayments() {
+  if (USE_DYNAMO) return dynamo.getPayments();
+  return db.payments;
+}
+
+async function saveReport(requestId, report) {
+  if (USE_DYNAMO) await dynamo.putReport({ requestId, ...report });
+  db.reports.set(requestId, report);
+}
+
+async function loadReport(requestId) {
+  if (USE_DYNAMO) {
+    const r = await dynamo.getReport(requestId);
+    if (r) return r;
+  }
+  return db.reports.get(requestId) || null;
+}
+
 const server = createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, null);
 
@@ -89,8 +133,9 @@ const server = createServer(async (req, res) => {
         amountWei: REPORT_PRICE_WEI,
         recipient: RECIPIENT,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        status: "pending",
       };
-      db.quotes.set(requestId, { ...quote, status: "pending" });
+      await saveQuote(quote);
       return json(res, 200, quote);
     }
 
@@ -103,16 +148,14 @@ const server = createServer(async (req, res) => {
       if (!requestId || !txHash) {
         return json(res, 400, { error: "requestId and txHash required" });
       }
-      const quote = db.quotes.get(requestId);
+      const quote = await loadQuote(requestId);
       if (!quote) {
         return json(res, 404, { error: "Quote not found" });
       }
 
-      // Extract wallet from txHash via RPC (or use a placeholder for demo)
       const walletAddress = req.headers["x-wallet-address"] || "0x0000000000000000000000000000000000000001";
       const verification = await verifyPayment(walletAddress);
 
-      // Record on-chain via smart contract (oracle submits AI result)
       const onChainTx = await recordPaymentOnChain(
         requestId,
         walletAddress,
@@ -130,8 +173,9 @@ const server = createServer(async (req, res) => {
         timestamp: new Date().toISOString(),
         verification,
       };
-      db.payments.push(payment);
+      await savePayment(payment);
       quote.status = "confirmed";
+      await saveQuote(quote);
 
       return json(res, 200, {
         chainId: CHAIN_ID,
@@ -151,12 +195,12 @@ const server = createServer(async (req, res) => {
       if (!requestId) {
         return json(res, 400, { error: "requestId required" });
       }
-      const quote = db.quotes.get(requestId);
+      const quote = await loadQuote(requestId);
       if (!quote) {
         return json(res, 404, { error: "Quote not found" });
       }
 
-      const existing = db.reports.get(requestId);
+      const existing = await loadReport(requestId);
       if (existing) {
         return json(res, 200, existing);
       }
@@ -169,14 +213,18 @@ const server = createServer(async (req, res) => {
         observations: report.observations.filter(Boolean),
         sources: report.sources.filter((s) => s.url && s.label),
       };
-      db.reports.set(requestId, formatted);
+      await saveReport(requestId, formatted);
+      if (USE_DYNAMO) {
+        try { await uploadReport(requestId, formatted); } catch (e) { console.error("S3 upload failed:", e.message); }
+      }
       return json(res, 200, formatted);
     }
 
     // POST /api/launch -- get launch/graduation status
     if (req.method === "POST" && url.pathname === "/api/launch") {
       const onChain = await getGraduationProgress();
-      const payments = db.payments.map(formatPaymentForFrontend);
+      const allPayments = await loadPayments();
+      const payments = allPayments.map(formatPaymentForFrontend);
 
       if (onChain) {
         return json(res, 200, {
@@ -193,7 +241,7 @@ const server = createServer(async (req, res) => {
         });
       }
 
-      const eligible = db.payments.filter(
+      const eligible = allPayments.filter(
         (p) => p.verification && p.verification.confidence >= 60
       );
       const revenueWei = bnbToWei(
@@ -214,9 +262,11 @@ const server = createServer(async (req, res) => {
 
     // GET /api/health
     if (req.method === "GET" && url.pathname === "/api/health") {
+      const allPayments = await loadPayments();
       return json(res, 200, {
         status: "ok",
-        payments: db.payments.length,
+        storage: USE_DYNAMO ? "dynamodb" : "in-memory",
+        payments: allPayments.length,
         reports: db.reports.size,
         quotes: db.quotes.size,
       });
@@ -231,5 +281,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Revenue Gate API running on port ${PORT}`);
+  console.log(`Storage: ${USE_DYNAMO ? "DynamoDB" : "in-memory"}`);
   console.log(`Test: curl http://localhost:${PORT}/api/health`);
 });
