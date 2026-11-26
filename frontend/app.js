@@ -174,7 +174,7 @@ function overview() {
     <h2>How a payment reaches the gate</h2>
     <ol>
       <li><h3>Someone pays for the product</h3><p>Here the product is an AI research report, priced at 0.01 tBNB.</p></li>
-      <li><h3>The paying wallet is scored</h3><p>An AI model reads the wallet's testnet balance and history and scores it from 0 to 100.</p></li>
+      <li><h3>The paying wallet is scored</h3><p>The wallet earns points for its transaction history and balance, up to 100. An AI model explains the score and can adjust it slightly.</p></li>
       <li><h3>The score goes on-chain</h3><p>The gate contract stores every payment. Only scores of 60 or more are counted.</p></li>
       <li><h3>The gate opens</h3><p>Once counted scores add up to 5,000, the token is eligible to graduate.</p></li>
     </ol>
