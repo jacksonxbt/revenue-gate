@@ -20,12 +20,13 @@ const tbnb = n => n.toFixed(2) + ' tBNB';
 const isAddress = v => /^0x[0-9a-f]{40}$/i.test(v || '');
 const txLink = h => `<a class="mono" href="${SCAN}/tx/${h}" target="_blank" rel="noopener noreferrer" title="${h}">${short(h)}</a>`;
 const tag = (verdict, long) => `<span class="tag ${VERDICT[verdict] ? verdict : 'pending'}">${(VERDICT[verdict] || VERDICT.pending)[long ? 1 : 0]}</span>`;
-const blankResearch = () => ({asset: '', hash: '', quote: null, payment: null, report: null, busy: '', error: ''});
+const blankResearch = () => ({manual: false, note: '', asset: '', hash: '', quote: null, payment: null, report: null, busy: '', error: ''});
 
 const state = {mode: isConfigured(liveConfig) ? 'live' : 'demo', gate: null, gateBusy: false, gateError: '', r: blankResearch()};
 let demoReport = null;
 
 function friendly(err) {
+  if (err?.code === 4001) return 'You cancelled the payment in MetaMask. Nothing was sent.';
   if (err?.name === 'TimeoutError' || err?.name === 'AbortError') return 'The server took too long to answer. Try again.';
   if (err instanceof TypeError) return "Couldn't reach the Revenue Gate server. Check your connection and try again.";
   return err?.message || 'Something went wrong. Try again.';
@@ -84,7 +85,7 @@ const live = {
   },
   async quote(asset) {
     const q = await api.quote(asset);
-    return {asset: q.asset, amount: testnetAmount(q.amountWei), recipient: q.recipient, expiresAt: q.expiresAt, requestId: q.requestId};
+    return {asset: q.asset, amount: testnetAmount(q.amountWei), amountWei: q.amountWei, recipient: q.recipient, expiresAt: q.expiresAt, requestId: q.requestId};
   },
   async pay(quote, hash) {
     const p = await api.payment(quote.requestId, hash);
@@ -165,16 +166,22 @@ function stepTwo(r) {
     </div></li>`;
   }
   const until = new Date(r.quote.expiresAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-  return `<li><h2>${title}</h2><form class="body" data-form="pay" novalidate>
-    <div class="pay-box">
+  const hasWallet = Boolean(window.ethereum);
+  const box = `<div class="pay-box">
       <div class="pay-line"><span class="amount">${esc(r.quote.amount)}</span><span class="small">Quote holds until ${esc(until)}</span></div>
-      <p class="small">Send this exact amount on BNB testnet, from a test wallet, to:</p>
+      <p class="small">Paid on BNB testnet, from a test wallet, to:</p>
       <div class="pay-line"><span class="mono">${esc(r.quote.recipient)}</span><button type="button" class="btn quiet small" data-copy="${esc(r.quote.recipient)}">Copy</button></div>
-    </div>
-    <label class="field">Transaction hash<input class="mono" data-field="hash" autocomplete="off" spellcheck="false" placeholder="0x…" value="${esc(r.hash)}"><small>Paste it from your wallet once the transfer confirms.</small></label>
-    ${alert}
-    <div><button class="btn" ${r.busy ? 'disabled' : ''}>${r.busy === 'pay' ? 'Verifying…' : 'Verify payment'}</button></div>
-  </form></li>`;
+    </div>`;
+  if (r.busy === 'wallet') return `<li><h2>${title}</h2><div class="body">${box}<p class="writing" role="status">${esc(r.note)}</p></div></li>`;
+  const form = `<form class="body" data-form="pay" novalidate>
+      <label class="field">Transaction hash<input class="mono" data-field="hash" autocomplete="off" spellcheck="false" placeholder="0x…" value="${esc(r.hash)}"><small>Send the amount above from any wallet, then paste the hash once it confirms.</small></label>
+      ${alert}
+      <div><button class="btn ${hasWallet ? 'quiet' : ''}" ${r.busy ? 'disabled' : ''}>${r.busy === 'pay' ? 'Verifying…' : 'Verify payment'}</button></div>
+    </form>`;
+  return `<li><h2>${title}</h2><div class="body">${box}
+    ${hasWallet ? `<div><button class="btn" data-action="wallet" ${r.busy ? 'disabled' : ''}>Pay with MetaMask</button></div>` : '<p class="muted">No browser wallet found on this device.</p>'}
+    ${r.manual || !hasWallet ? form : `${alert}<div><button type="button" class="linkbtn" data-action="manual">Paid another way? Paste a transaction hash</button></div>`}
+  </div></li>`;
 }
 
 function stepThree(r) {
@@ -280,6 +287,31 @@ async function pay() {
   if (state.r.payment && !state.r.report) getReport();
 }
 
+const BNB_TESTNET = {chainId: '0x61', chainName: 'BNB Smart Chain Testnet', nativeCurrency: {name: 'tBNB', symbol: 'tBNB', decimals: 18}, rpcUrls: ['https://data-seed-prebsc-1-s1.bnbchain.org:8545'], blockExplorerUrls: [SCAN]};
+
+async function payWithWallet() {
+  const eth = window.ethereum;
+  const step = (r, note) => { r.note = note; if (state.r === r) render(); };
+  await run('wallet', async r => {
+    r.note = 'Connect your wallet in MetaMask…';
+    const [from] = await eth.request({method: 'eth_requestAccounts'});
+    try { await eth.request({method: 'wallet_switchEthereumChain', params: [{chainId: BNB_TESTNET.chainId}]}); }
+    catch (err) { if (err?.code !== 4902) throw err; await eth.request({method: 'wallet_addEthereumChain', params: [BNB_TESTNET]}); }
+    step(r, 'Confirm the 0.01 tBNB payment in MetaMask…');
+    const hash = await eth.request({method: 'eth_sendTransaction', params: [{from, to: r.quote.recipient, value: '0x' + BigInt(r.quote.amountWei).toString(16)}]});
+    r.hash = hash; r.manual = true;
+    step(r, 'Payment sent. Waiting for BNB testnet to confirm it…');
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await new Promise(done => setTimeout(done, 3000));
+      const p = await src().pay(r.quote, hash);
+      if (p.status === 'failed') throw new Error(p.reason || 'The transfer failed on-chain.');
+      if (p.status === 'confirmed') { r.payment = p; state.gate = null; state.gateError = ''; return; }
+    }
+    throw new Error('The transfer is taking longer than usual. Wait a moment, then press Verify payment.');
+  });
+  if (state.r.payment && !state.r.report) getReport();
+}
+
 function getReport() {
   run('report', async r => { r.report = await src().report(r.quote); });
 }
@@ -304,6 +336,8 @@ view.addEventListener('click', event => {
   if (action === 'refresh') { state.gate = null; state.gateError = ''; loadGate(); }
   if (action === 'reset') { state.r = blankResearch(); render(); }
   if (action === 'pay') pay();
+  if (action === 'wallet') payWithWallet();
+  if (action === 'manual') { state.r.manual = true; render(); }
   if (action === 'report') getReport();
 });
 document.querySelector('.mode').addEventListener('click', event => {

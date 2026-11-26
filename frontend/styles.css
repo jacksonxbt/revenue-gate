@@ -146,6 +146,8 @@ button, input { font: inherit; color: inherit; }
 .tag.flagged { color: var(--red); background: #FBEDEA; }
 .tag.uncertain, .tag.pending { color: #7A5A00; background: #FCF2D4; }
 
+.linkbtn { background: none; border: 0; padding: 0; color: var(--green); text-decoration: underline; cursor: pointer; font-weight: 500; text-align: left; }
+
 /* Ledger */
 .ledger { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3rem, 7vw, 5rem); }
 .ledger-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; flex-wrap: wrap; }
@@ -156,7 +158,7 @@ button, input { font: inherit; color: inherit; }
 .ledger td { padding: .95rem 1rem .95rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ledger td.why { color: var(--muted); font-size: .95rem; max-width: 30rem; }
 .ledger tr.flagged .amt { text-decoration: line-through; text-decoration-color: var(--red); color: var(--muted); }
-.ledger .amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger .amt { white-space: nowrap; }
 .empty-row { margin-top: 1.5rem; padding: 1.5rem; background: var(--mint); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
 
 /* Footer */
