@@ -70,6 +70,7 @@ function formatPaymentForFrontend(p) {
     reason: p.verification
       ? p.verification.reasoning
       : "Verification pending",
+    confidence: p.verification ? Number(p.verification.confidence) : null,
   };
 }
 
@@ -172,7 +173,7 @@ const server = createServer(async (req, res) => {
         return json(res, 200, {
           chainId: CHAIN_ID, txHash, amountWei: REPORT_PRICE_WEI, status: "confirmed",
           confirmations: transfer.confirmations, assessment: previous.verification.assessment,
-          reason: previous.verification.reasoning, onChainTx: previous.onChainTx,
+          reason: previous.verification.reasoning, confidence: previous.verification.confidence, onChainTx: previous.onChainTx,
         });
       }
 
@@ -211,6 +212,7 @@ const server = createServer(async (req, res) => {
         confirmations: transfer.confirmations,
         assessment: verification.assessment,
         reason: verification.reasoning,
+        confidence: verification.confidence,
         onChainTx,
       });
     }

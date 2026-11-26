@@ -80,7 +80,7 @@ const live = {
       source: onChain && contract
         ? `Read from gate contract ${contractLink} on BNB testnet. Each counted payment adds its wallet score, from 60 to 100. The contract records eligibility only and is not yet connected to an OpenFour launch.`
         : 'Calculated by the Revenue Gate server. The gate contract could not be read.',
-      payments: l.payments.map(x => ({ref: txLink(x.txHash), amount: testnetAmount(x.amountWei), verdict: x.assessment, reason: x.reason || ''})),
+      payments: l.payments.map(x => ({ref: txLink(x.txHash), amount: testnetAmount(x.amountWei), verdict: x.assessment, reason: x.reason || '', score: Number.isFinite(x.confidence) ? x.confidence : null})),
     };
   },
   async quote(asset) {
@@ -89,7 +89,7 @@ const live = {
   },
   async pay(quote, hash) {
     const p = await api.payment(quote.requestId, hash);
-    return {status: p.status, verdict: p.assessment, ref: txLink(p.txHash), reason: p.reason || '', gateTx: validHash(p.onChainTx) ? p.onChainTx : null};
+    return {status: p.status, verdict: p.assessment, ref: txLink(p.txHash), reason: p.reason || '', score: Number.isFinite(p.confidence) ? p.confidence : null, gateTx: validHash(p.onChainTx) ? p.onChainTx : null};
   },
   async report(quote) {
     const r = await api.report(quote.requestId);
@@ -195,7 +195,7 @@ function stepThree(r) {
 
 function reportDoc(r) {
   if (!r.payment) return '<div class="doc"><div class="doc-empty"><h2>No report yet</h2><p>Finish the three steps and your report opens here, along with the verdict on your payment.</p></div></div>';
-  const verdict = `<div class="verdict">${tag(r.payment.verdict, true)}<p>${esc(r.payment.reason)}</p>
+  const verdict = `<div class="verdict">${tag(r.payment.verdict, true)}${r.payment.score != null ? `<p><strong>Wallet score ${r.payment.score} of 100.</strong> A score of 60 or more counts.</p>` : ''}<p>${esc(r.payment.reason)}</p>
     ${r.payment.gateTx ? `<p class="muted">Written to the gate contract in ${txLink(r.payment.gateTx)}</p>` : ''}</div>`;
   if (!r.report) return `<div class="doc">${verdict}${r.busy === 'report' ? '<p class="writing">Writing your report…</p>' : ''}</div>`;
   const sources = r.report.sources.map(s => ({label: s.label, url: safeSource(s.url)})).filter(s => s.url);
@@ -219,7 +219,7 @@ function gatePage() {
   const g = state.gate;
   const extra = g?.onChain ? g.counted + g.flagged - g.payments.length : 0;
   const rows = g?.payments.length
-    ? `<table><thead><tr><th>Payment</th><th>Amount</th><th>Verdict</th><th>Why</th></tr></thead><tbody>${g.payments.map(p => `<tr class="${p.verdict === 'flagged' ? 'flagged' : ''}"><td>${p.ref}</td><td class="amt">${esc(p.amount)}</td><td>${tag(p.verdict)}</td><td class="why">${esc(p.reason)}</td></tr>`).join('')}</tbody></table>`
+    ? `<table><thead><tr><th>Payment</th><th>Amount</th><th>Verdict</th><th>Why</th></tr></thead><tbody>${g.payments.map(p => `<tr class="${p.verdict === 'flagged' ? 'flagged' : ''}"><td>${p.ref}</td><td class="amt">${esc(p.amount)}</td><td>${tag(p.verdict)}</td><td class="why">${p.score != null ? `<strong>Score ${p.score}.</strong> ` : ''}${esc(p.reason)}</td></tr>`).join('')}</tbody></table>`
     : g ? '<div class="empty-row"><p>No payments have come through this server yet.</p><a class="btn" href="#research">Request a report</a></div>' : '';
   return `<div class="wrap"><section class="page-head"><h1>Every payment, counted or not.</h1><p>Product payments are tracked apart from token-sale proceeds. A payment that doesn't count is still recorded, with the reason.</p></section></div>
   ${gateBand()}
