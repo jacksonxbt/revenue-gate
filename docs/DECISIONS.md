@@ -11,6 +11,7 @@
 - 26 Nov: Groq (`openai/gpt-oss-120b`) is used for wallet scoring and reports instead of Claude, to stay on a free tier.
 - 26 Nov: payments are verified on-chain (success, recipient, amount, no reuse) before scoring, and a report requires a confirmed payment. The verdict label follows the contract rule: a score of 60 or more counts.
 - 26 Nov: frontend redesigned and live mode connected by the technical lead while Jackson was unavailable; `live-view.js` was folded into `app.js`. A Pay with MetaMask button was added, with paste-a-hash kept as fallback. This changes the earlier rule that the UI never initiates a transfer. Branch `integration/frontend-redesign`; for Jackson's review.
+- 26 Nov: wallet scoring loosened and made transparent at the technical lead's request, because every tester's wallet was being rejected, including wallets with real history on BNB mainnet. Points now come from fixed rules in `backend/services/verification.js` (`SCORE_RULES`): transactions sent on BNB testnet plus BNB mainnet (up to 50), balance (up to 25), personal wallet (15); contracts are capped at 40. The AI model explains the score and may adjust it by at most 5 points. The Gate page shows the table. Trade-off: a wallet with 3 transactions and 0.02 BNB now counts, which is easier to fake. The contract and the 60-point rule are unchanged.
 - Open: the gate has not opened on-chain (no payment has scored 60 or more); self-payment is not blocked; repository visibility for judges.
 
 For changes, record date, decision, rationale, owner and linked issue/PR.
