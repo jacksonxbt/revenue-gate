@@ -4,6 +4,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { generateReport } from "./services/research.js";
 import { verifyPayment } from "./services/verification.js";
+import { recordPaymentOnChain, getGraduationProgress } from "./services/onchain.js";
 import { db } from "./db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -111,12 +112,21 @@ const server = createServer(async (req, res) => {
       const walletAddress = req.headers["x-wallet-address"] || "0x0000000000000000000000000000000000000001";
       const verification = await verifyPayment(walletAddress);
 
+      // Record on-chain via smart contract (oracle submits AI result)
+      const onChainTx = await recordPaymentOnChain(
+        requestId,
+        walletAddress,
+        verification.confidence,
+        REPORT_PRICE_WEI
+      );
+
       const payment = {
         id: requestId,
         walletAddress,
         asset: quote.asset,
         amount: 0.01,
         txHash,
+        onChainTx,
         timestamp: new Date().toISOString(),
         verification,
       };
@@ -131,6 +141,7 @@ const server = createServer(async (req, res) => {
         confirmations: 1,
         assessment: verification.assessment,
         reason: verification.reasoning,
+        onChainTx,
       });
     }
 
@@ -164,14 +175,30 @@ const server = createServer(async (req, res) => {
 
     // POST /api/launch -- get launch/graduation status
     if (req.method === "POST" && url.pathname === "/api/launch") {
+      const onChain = await getGraduationProgress();
+      const payments = db.payments.map(formatPaymentForFrontend);
+
+      if (onChain) {
+        return json(res, 200, {
+          chainId: CHAIN_ID,
+          revenueWei: bnbToWei(onChain.eligiblePayments * 0.01),
+          targetWei: TARGET_WEI,
+          eligible: onChain.graduated,
+          enforcement: "on-chain",
+          state: onChain.graduated ? "graduated" : "accumulating",
+          payments,
+          contractAddress: process.env.CONTRACT_ADDRESS,
+          onChainProgress: onChain,
+          evidenceTxHash: null,
+        });
+      }
+
       const eligible = db.payments.filter(
         (p) => p.verification && p.verification.confidence >= 60
       );
       const revenueWei = bnbToWei(
         eligible.reduce((sum, p) => sum + p.amount, 0)
       );
-      const payments = db.payments.map(formatPaymentForFrontend);
-
       return json(res, 200, {
         chainId: CHAIN_ID,
         revenueWei,
